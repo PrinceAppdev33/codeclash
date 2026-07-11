@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum MatchStatus {
+  IN_PROGRESS
+  FINISHED
+  ABANDONED
+}
+
+model User {
+  id                String      @id @default(uuid())
+  githubId          String?      @unique
+
+  username          String      @unique
+  email             String     @unique
+  password          String? 
+  avatarUrl         String?
+  elo               Int         @default(1200)
+  wins              Int         @default(0)
+  losses            Int         @default(0)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  matchesAsP1       Match[]     @relation("Player1")
+  matchesAsP2       Match[]     @relation("Player2")
+  wonMatches        Match[]     @relation("Winner")
+  submissions       Submission[]
+}
+
+
+model Match {
+  id                String      @id @default(uuid())
+  status            MatchStatus @default(IN_PROGRESS)
+
+  problemId         String 
+  problem           Problem     @relation(fields: [problemId], references: [id])
+
+  player1Id         String
+  player1           User        @relation("Player1", fields: [player1Id], references: [id])
+
+  player2Id         String  
+  player2           User        @relation("Player2", fields: [player2Id], references: [id])
+
+  winnerId          String?
+  winner            User?       @relation("Winner", fields: [winnerId], references: [id])
+
+  p1EloChange       Int? 
+  p2EloChange       Int?
+
+  startedAt         DateTime    @default(now())
+  endedAt           DateTime? 
+
+  submissions       Submission[]
+}
+
+
+model Submission {
+  id                String      @id @default(uuid())
+  code              String      @db.Text
+  language          String
+  status            String  
+  executionTime     Float?   
+  memoryUsed        Float?  
+
+  userId            String
+  user              User        @relation(fields: [userId], references: [id])
+
+  matchId           String?
+  match             Match?      @relation(fields: [matchId], references: [id])
+
+  problemId         String
+  problem           Problem     @relation(fields: [problemId], references: [id])
+
+  createdAt         DateTime    @default(now())
+}
+
+
+model Problem {
+  id                String      @id @default(uuid())
+  title             String 
+  slug              String      @unique
+  description       String      @db.Text
+  difficulty        Difficulty  @default(EASY) 
+  constraints       String      @db.Text
+  starterCode       Json
+  publicTestCases   Json        
+  hiddenTestCases   Json
+  createdAt         DateTime    @default(now())
+  matches           Match[]
+  submissions       Submission[]
+}
+
+
+
+
+
