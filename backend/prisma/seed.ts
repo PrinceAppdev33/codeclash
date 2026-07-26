@@ -11,79 +11,55 @@ type ContestTestCase = {
 };
 
 type ContestProblem = {
+    id?: string;
     name?: string;
     description?: string;
-    difficulty?: number;
-    solutions?: Record<string, unknown>;
+    difficulty?: number | null;
+    constraints?: string;
+    publicTestCases?: Array<{ input?: unknown; output?: unknown; solution?: unknown }>;
+    hiddenTestCases?: Array<{ input?: unknown; output?: unknown; solution?: unknown }>;
     [key: string]: unknown;
 };
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+
 const seedFilePath = path.join(__dirname, "../script/data.json");
 
-const difficultyMap = (difficulty?: number) => {
-    if (difficulty === undefined || difficulty === null) {
-        return "EASY" as const;
-    }
-
-    if (difficulty <= 4) {
-        return "EASY" as const;
-    }
-
-    if (difficulty <= 8) {
-        return "MEDIUM" as const;
-    }
-
+const difficultyMap = (difficulty?: number | null) => {
+    if (difficulty === undefined || difficulty === null) return "EASY" as const;
+    if (difficulty <= 1200) return "EASY" as const;
+    if (difficulty <= 1800) return "MEDIUM" as const;
     return "HARD" as const;
 };
 
-const slugify = (value: string, fallbackIndex: number) => {
-    const slug = value
+const slugify = (value: string, uniqueSuffix: string | number) => {
+    const baseSlug = value
         .toLowerCase()
         .trim()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "");
 
-    return slug.length > 0 ? slug : `problem-${fallbackIndex + 1}`;
+    return baseSlug ? `${baseSlug}-${uniqueSuffix}` : `problem-${uniqueSuffix}`;
 };
 
-const toJsonArray = (value: unknown): unknown[] => {
-    if (!Array.isArray(value)) {
-        return [];
-    }
+const normalizeTestCases = (value: unknown): ContestTestCase[] => {
+    if (!Array.isArray(value)) return [];
 
-    return value;
-};
+    return value.flatMap((entry) => {
+        if (!entry || typeof entry !== "object") return [];
+        const record = entry as Record<string, unknown>;
 
-const collectTestCases = (value: unknown, results: ContestTestCase[] = []) => {
-    if (Array.isArray(value)) {
-        for (const item of value) {
-            collectTestCases(item, results);
+        if (record.input !== undefined && record.output !== undefined) {
+            return [{
+                input: record.input,
+                output: record.output,
+                solution: record.solution,
+            }];
         }
-
-        return results;
-    }
-
-    if (!value || typeof value !== "object") {
-        return results;
-    }
-
-    const record = value as Record<string, unknown>;
-
-    if (Array.isArray(record.input) && Array.isArray(record.output)) {
-        results.push({
-            input: record.input,
-            output: record.output,
-            solution: record.solution,
-        });
-    }
-
-    for (const nestedValue of Object.values(record)) {
-        collectTestCases(nestedValue, results);
-    }
-
-    return results;
+        return [];
+    });
 };
 
 const buildStarterCode = () => ({
@@ -97,6 +73,10 @@ const buildStarterCode = () => ({
 const asJsonValue = (value: unknown) => value as Prisma.InputJsonValue;
 
 const seedData = async () => {
+    if (!fs.existsSync(seedFilePath)) {
+        throw new Error(`Seed file not found at ${seedFilePath}. Run download.py first.`);
+    }
+
     const rawData = fs.readFileSync(seedFilePath, "utf-8");
     const data = JSON.parse(rawData) as ContestProblem[];
 
@@ -104,6 +84,7 @@ const seedData = async () => {
         throw new Error("Expected data.json to contain an array of problems.");
     }
 
+    console.log("Clearing existing submissions, matches, and problems...");
     await prisma.submission.deleteMany();
     await prisma.match.deleteMany();
     await prisma.problem.deleteMany();
@@ -111,20 +92,20 @@ const seedData = async () => {
     let createdCount = 0;
 
     for (const [index, item] of data.entries()) {
-        const testCases = collectTestCases(item);
-        const publicTestCases = testCases.slice(0, Math.max(1, Math.min(2, testCases.length)));
-        const hiddenTestCases = testCases.slice(publicTestCases.length);
+        const publicTestCases = normalizeTestCases(item.publicTestCases);
+        const hiddenTestCases = normalizeTestCases(item.hiddenTestCases);
 
-        const title = item.name?.trim() || `Problem ${index + 1}`;
-        const slug = slugify(title, index);
+        const title = item.name?.toString().trim() || `Problem ${index + 1}`;
+        const uniqueId = item.id || (index + 1).toString();
+        const slug = slugify(title, uniqueId);
 
         await prisma.problem.upsert({
             where: { slug },
             update: {
                 title,
-                description: item.description?.trim() || "No description provided.",
+                description: item.description?.toString().trim() || "No description provided.",
                 difficulty: difficultyMap(item.difficulty),
-                constraints: "Not provided in source dataset.",
+                constraints: item.constraints?.toString().trim() || "Not provided.",
                 starterCode: asJsonValue(buildStarterCode()),
                 publicTestCases: asJsonValue(publicTestCases),
                 hiddenTestCases: asJsonValue(hiddenTestCases),
@@ -132,9 +113,9 @@ const seedData = async () => {
             create: {
                 title,
                 slug,
-                description: item.description?.trim() || "No description provided.",
+                description: item.description?.toString().trim() || "No description provided.",
                 difficulty: difficultyMap(item.difficulty),
-                constraints: "Not provided in source dataset.",
+                constraints: item.constraints?.toString().trim() || "Not provided.",
                 starterCode: asJsonValue(buildStarterCode()),
                 publicTestCases: asJsonValue(publicTestCases),
                 hiddenTestCases: asJsonValue(hiddenTestCases),
@@ -144,7 +125,7 @@ const seedData = async () => {
         createdCount += 1;
     }
 
-    console.log(`Seeded ${createdCount} problems.`);
+    console.log(`Successfully seeded ${createdCount} problems into PostgreSQL.`);
 };
 
 seedData()

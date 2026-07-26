@@ -9,6 +9,8 @@
     "start": "node dist/index.ts",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
+    "download:problems": "python script/download.py",
+    "db:seed": "tsx prisma/seed.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
