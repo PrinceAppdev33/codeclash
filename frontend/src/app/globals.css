@@ -1,26 +1,128 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+
+.pixel-art {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  -ms-interpolation-mode: nearest-neighbor;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+.bg-pixel-sky {
+  background: linear-gradient(
+    to bottom,
+    #7a1a1a 0%,   #7a1a1a 8%,    
+    #9c2410 8%,   #9c2410 16%,   
+    #c23408 16%,  #c23408 26%,   
+    #e0500a 26%,  #e0500a 38%,
+    #f07500 38%,  #f07500 52%,   
+    #f7a007 52%,  #f7a007 68%,   
+    #fbc93f 68%,  #fbc93f 84%,   
+    #fde98a 84%,  #fde98a 100%   
+  );
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+.pixel-corners {
+  clip-path: polygon(
+    0px calc(100% - 32px),
+    8px calc(100% - 32px),
+    8px calc(100% - 16px),
+    16px calc(100% - 16px),
+    16px calc(100% - 8px),
+    32px calc(100% - 8px),
+    32px 100%,
+    calc(100% - 32px) 100%,
+    calc(100% - 32px) calc(100% - 8px),
+    calc(100% - 16px) calc(100% - 8px),
+    calc(100% - 16px) calc(100% - 16px),
+    calc(100% - 8px) calc(100% - 16px),
+    calc(100% - 8px) calc(100% - 32px),
+    100% calc(100% - 32px),
+    100% 32px,
+    calc(100% - 8px) 32px,
+    calc(100% - 8px) 16px,
+    calc(100% - 16px) 16px,
+    calc(100% - 16px) 8px,
+    calc(100% - 32px) 8px,
+    calc(100% - 32px) 0px,
+    32px 0px,
+    32px 8px,
+    16px 8px,
+    16px 16px,
+    8px 16px,
+    8px 32px,
+    0px 32px
+  );
+
+  position: relative;
+}
+
+.pixel-corners::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #eec84c;;
+  clip-path: inherit;
+  pointer-events: none;
+}
+
+.pixel-corners-wrapper {
+  position: relative;
+  width: min(100%, 672px);
+  padding: 8px;
+  background: #3b1a0b;
+  clip-path: polygon(
+    0 32px,
+    8px 32px,
+    8px 16px,
+    16px 16px,
+    16px 8px,
+    32px 8px,
+    32px 0,
+    calc(100% - 32px) 0,
+    calc(100% - 32px) 8px,
+    calc(100% - 16px) 8px,
+    calc(100% - 16px) 16px,
+    calc(100% - 8px) 16px,
+    calc(100% - 8px) 32px,
+    100% 32px,
+    100% calc(100% - 32px),
+    calc(100% - 8px) calc(100% - 32px),
+    calc(100% - 8px) calc(100% - 16px),
+    calc(100% - 16px) calc(100% - 16px),
+    calc(100% - 16px) calc(100% - 8px),
+    calc(100% - 32px) calc(100% - 8px),
+    calc(100% - 32px) 100%,
+    32px 100%,
+    32px calc(100% - 8px),
+    16px calc(100% - 8px),
+    16px calc(100% - 16px),
+    8px calc(100% - 16px),
+    8px calc(100% - 32px),
+    0 calc(100% - 32px)
+  );
+}
+
+.pixel-corners {
+  background: #fff8e7;
+  min-height: 400px;
+}
+
+@keyframes mildRetroIdle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.animate-retro-idle {
+  animation: mildRetroIdle 1.5s steps(2) infinite;
+  transform-origin: bottom center;
+}
+
+.animate-retro-idle-delayed {
+  animation: mildRetroIdle 1.5s steps(2) infinite 0.75s;
+  transform-origin: bottom center;
 }
