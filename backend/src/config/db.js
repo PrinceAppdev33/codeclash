@@ -7,4 +7,3 @@ const connectionString = process.env.DATABASE_URL;
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 export const prisma = new PrismaClient({ adapter });
-//# sourceMappingURL=db.js.map

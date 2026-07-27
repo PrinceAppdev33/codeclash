@@ -1,7 +1,43 @@
+'use client';
+import { useRouter } from 'next/navigation';
+import { useState, type SubmitEvent } from 'react';
 import SunsetBackground from '@/components/layout/SunsetBackground';
+import { setToken } from '../../redux/slices/authSlice';
+import { useAppDispatch } from '../../redux/hooks';
+import axios from 'axios';
 import Image from 'next/image';
+import {GithubLoginButton} from '../../components/auth/GithubLoginButton';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const dispatch = useAppDispatch();
+  const handleSubmit = async (e: SubmitEvent) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post(
+        'http://localhost:5000/api/auth/login',
+        { email, password },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      const data = response.data;
+
+      if (response.status < 200 || response.status >= 300) {
+        throw new Error(data.message || 'Login failed');
+      }
+
+      localStorage.setItem('token', data.token);
+      dispatch(setToken(data.token));
+      router.push('/');
+    } catch (error) {
+      console.log(error);
+    }
+  }
   return (
     <SunsetBackground>
       <div className="w-full h-full flex justify-center items-center p-6">
@@ -10,13 +46,15 @@ export default function LoginPage() {
             <div className="relative z-10 text-4xl font-bold mb-6">
               CodeClash
             </div>
-            <form className="relative z-10 flex flex-col gap-5" >
+            <form className="relative z-10 flex flex-col gap-5" onSubmit={(e) => handleSubmit(e)}>
               <div className="flex flex-col gap-2">
                 <label className="text-2xl font-bold">
                   Email
                 </label>
                 <input
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   className="w-full px-4 py-2 bg-white text-black placeholder-gray-500 border-2 border-black rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-600"
                 />
@@ -26,8 +64,10 @@ export default function LoginPage() {
                 <label className="text-2xl font-bold">
                   Password
                 </label>
-                <input
+                <input  
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   className="w-full px-4 py-2 bg-white text-black placeholder-gray-500 border-2 border-black rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-600"
                 />
@@ -39,16 +79,17 @@ export default function LoginPage() {
               >
                 LOGIN
               </button>
-              <button
-                type="button"
-                className="flex w-full items-center justify-center gap-3 border-2 border-[#3b1a0b] bg-transparent px-4 py-3 font-bold tracking-wide transition hover:bg-[#3b1a0b] hover:text-[#fff8e7]"
-              >
-                SIGN UP WITH GITHUB
-              </button>
+              <GithubLoginButton />
 
               <div className="flex justify-between text-sm font-bold mt-1">
-                <a href="#forgot" className="hover:underline">Forgot password?</a>
-                <a href="#signup" className="hover:underline">Sign up</a>
+                First time here? Create an account 
+                <button
+                  type="button"
+                  className="font-bold underline underline-offset-2"
+                  onClick={() => router.push('/signup')}
+                >
+                  Sign Up
+                </button>
               </div>
             </form>
           </div>
