@@ -2,7 +2,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, type SubmitEvent } from 'react';
 import SunsetBackground from '@/components/layout/SunsetBackground';
-import { setToken } from '../../redux/slices/authSlice';
+import { setCredentials } from '../../redux/slices/authSlice';
 import { useAppDispatch } from '../../redux/hooks';
 import axios from 'axios';
 import Image from 'next/image';
@@ -32,7 +32,7 @@ export default function LoginPage() {
       }
 
       localStorage.setItem('token', data.token);
-      dispatch(setToken(data.token));
+      dispatch(setCredentials({token: data.token, user: data.user}));
       router.push('/');
     } catch (error) {
       console.log(error);

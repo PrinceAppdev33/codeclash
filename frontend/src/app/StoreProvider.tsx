@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react'
 import { Provider } from 'react-redux'
 import { makeStore, AppStore } from '../redux/store'
-import { setToken } from '../redux/slices/authSlice'
+import { logout, setCredentials } from '../redux/slices/authSlice'
 
 export default function StoreProvider({
   children
@@ -17,8 +17,19 @@ export default function StoreProvider({
 
   useEffect(() => {
     const token = localStorage.getItem('token')
+    const storedUser = localStorage.getItem('user');
     if (token) {
-      storeRef.current?.dispatch(setToken(token))
+      let user = undefined;
+      if(storedUser) {
+        try {
+          user = JSON.parse(storedUser);
+        } catch (error) {
+          console.log(error);
+        }
+      }
+      storeRef.current?.dispatch(setCredentials({token, user}))
+    } else {
+      storeRef.current?.dispatch(logout())
     }
   }, [])
 

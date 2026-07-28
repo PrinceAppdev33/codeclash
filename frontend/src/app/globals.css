@@ -22,6 +22,8 @@
   );
 }
 
+
+
 .pixel-corners {
   clip-path: polygon(
     0px calc(100% - 32px),

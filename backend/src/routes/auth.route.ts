@@ -1,14 +1,16 @@
 import {Router} from 'express';
 import type {Request, Response} from  'express';
 import passport from '../config/passport.js';
-import { registerWithEmail, loginWithEmail } from '../controllers/user.controller.js';
+import { registerWithEmail, loginWithEmail, getUserProfile } from '../controllers/user.controller.js';
 import type {AuthResponse} from '../services/user.service.js';
+import { AuthMiddleware } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
 router.post('/signup', registerWithEmail);
 router.post('/register', registerWithEmail);
 router.post('/login', loginWithEmail);
+router.get('/me', AuthMiddleware, getUserProfile);
 
 router.get('/github',
   passport.authenticate('github', { session: false, scope: ['user:email'] })

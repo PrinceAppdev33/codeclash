@@ -5,6 +5,7 @@ import  LoginButton from '@/components/auth/LoginButton';
 import SignupButton  from '@/components/auth/SignupButton';
 import StartMatchButton from '@/components/match/StartMatchButton';
 import LogoutButton from '@/components/auth/LogoutButton';
+import ProfileButton from '@/components/auth/ProfileButton';
 import { useAppSelector } from '../redux/hooks';
 
 
@@ -21,7 +22,8 @@ export default function CodeClashHero() {
             <SignupButton />
           </div>
         ):(
-          <div className="m-[2vh] flex  flex-wrap items-center justify-end gap-4 z-50">
+          <div className="m-[2vh] flex  items-center justify-between gap-4 z-50">
+            <ProfileButton />
             <LogoutButton />
           </div>
         )

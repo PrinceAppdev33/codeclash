@@ -7,11 +7,13 @@ import { logout } from '../../redux/slices/authSlice';
 export default function LogoutButton() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+
   const handleLogout = () => {
-        console.log('Logging out...');
-        dispatch(logout());
-        router.push('/login');
-  }
+    console.log('Logging out...');
+    localStorage.removeItem('token');
+    dispatch(logout());
+    router.replace('/login');
+  };
 
   return (
     <button

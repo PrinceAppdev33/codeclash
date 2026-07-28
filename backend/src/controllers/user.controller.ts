@@ -1,9 +1,10 @@
 import { UserService }  from "../services/user.service.js";
 import type { Request, Response } from "express";
 import type { RegisterEmailInput } from "../services/user.service.js"
+import type { ParamsDictionary } from "express-serve-static-core";
 
-interface getUserProfileParams {
-    userId: string;
+interface AuthenticatedRequest extends Request {
+    userId?: string;
 }
 
 export const registerWithEmail = async (req: Request, res: Response) => {
@@ -32,9 +33,9 @@ export const loginWithEmail = async (req: Request, res: Response) => {
 }
 
 
-export const getUserProfile = async (req: Request<getUserProfileParams>, res: Response) => {
+export const getUserProfile = async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const userId = req.params.userId;
+        const userId = req.userId;
         if (!userId) {
             return res.status(400).json({
                 data: {},

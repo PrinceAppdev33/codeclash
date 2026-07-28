@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 import SunsetBackground from '@/components/layout/SunsetBackground';
 import { GithubLoginButton } from '../../components/auth/GithubLoginButton';
 import { useAppDispatch } from '@/redux/hooks';
-import { setToken } from '@/redux/slices/authSlice';
+import { setCredentials } from '@/redux/slices/authSlice';
+import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -36,22 +37,26 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/signup`, {
-        method: 'POST',
+      const response = await axios.post(
+      `${API_URL}/api/auth/signup`,
+      {
+        username,
+        email,
+        password,
+      },
+      {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, email, password }),
-      });
+      }
+    );
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Signup failed');
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Signup failed');
       }
 
-      localStorage.setItem('token', data.token);
-      dispatch(setToken(data.token));
+      localStorage.setItem('token', response.data.token);
+      dispatch(setCredentials({token: response.data.token, user: response.data.data}));
       router.push('/');
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
