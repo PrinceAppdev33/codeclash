@@ -55,8 +55,10 @@ export default function SignupPage() {
         throw new Error(response.data.message || 'Signup failed');
       }
 
+      const user = response.data.user ?? response.data.data ?? response.data;
       localStorage.setItem('token', response.data.token);
-      dispatch(setCredentials({token: response.data.token, user: response.data.data}));
+      localStorage.setItem('user', JSON.stringify(user));
+      dispatch(setCredentials({ token: response.data.token, user }));
       router.push('/');
     } catch (err: any) {
       setError(err.message || 'Something went wrong');

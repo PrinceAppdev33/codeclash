@@ -18,6 +18,17 @@ enum MatchStatus {
   ABANDONED
 }
 
+enum SubmissionVerdict {
+  PENDING
+  RUNNING
+  ACCEPTED
+  WRONG_ANSWER
+  COMPILATION_ERROR
+  RUNTIME_ERROR
+  TIME_LIMIT_EXCEEDED
+  SYSTEM_ERROR
+}
+
 model User {
   id                String      @id @default(uuid())
   githubId          String?     @unique
@@ -69,7 +80,7 @@ model Submission {
   id                String      @id @default(uuid())
   code              String      @db.Text
   language          String
-  status            String  
+  status            SubmissionVerdict @default(PENDING)
   executionTime     Float?   
   memoryUsed        Float?  
 

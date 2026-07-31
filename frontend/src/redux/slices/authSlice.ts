@@ -27,10 +27,16 @@ export const authSlice = createSlice({
         setCredentials: (state, action: PayloadAction<{token: string, user?: UserProfile}>) => {
             state.token = action.payload.token;
             state.isAuthenticated = true;
-            if(action.payload.user)state.user = action.payload.user;
+            if (action.payload.user) {
+                state.user = action.payload.user;
+            }
         },
         setUser: (state, action: PayloadAction<UserProfile>)=>{
             state.user = action.payload;
+            state.isAuthenticated = true;
+            if (state.token) {
+                state.isAuthenticated = true;
+            }
         },
         logout: (state) => {
             state.token = null;

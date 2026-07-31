@@ -31,8 +31,10 @@ export default function LoginPage() {
         throw new Error(data.message || 'Login failed');
       }
 
+      const user = data.user ?? data.data ?? data;
       localStorage.setItem('token', data.token);
-      dispatch(setCredentials({token: data.token, user: data.user}));
+      localStorage.setItem('user', JSON.stringify(user));
+      dispatch(setCredentials({ token: data.token, user }));
       router.push('/');
     } catch (error) {
       console.log(error);

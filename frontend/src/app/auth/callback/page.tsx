@@ -31,8 +31,10 @@ function AuthCallbackContent() {
           headers: { Authorization: `Bearer ${authToken}` },
         });
 
+        const user = response.data.user ?? response.data.data ?? response.data;
         localStorage.setItem('token', authToken);
-        dispatch(setCredentials({ token: authToken, user: response.data.data }));
+        localStorage.setItem('user', JSON.stringify(user));
+        dispatch(setCredentials({ token: authToken, user }));
         router.replace('/');
       } catch (err) {
         console.error(err);

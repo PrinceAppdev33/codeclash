@@ -113,64 +113,85 @@ export class MatchService {
     }
 
     static async finishMatch(input: FinishMatchInput): Promise<MatchDetails> {
-        const match = await prisma.match.findUnique({
-            where: {id: input.matchId},
+    return await prisma.$transaction(async (tx) => {
+        // 1. Fetch match and players (Read step)
+        const match = await tx.match.findUnique({
+            where: { id: input.matchId },
             include: {
                 player1: true,
                 player2: true,
             }
         });
 
-        if(!match) {
+        if (!match) {
             throw new Error('Match not found');
         }
 
-        if(match.status !== MatchStatus.IN_PROGRESS) {
-            throw new Error('Match is not in progress');
+        // 2. Atomic Guard: Update status ONLY if it is currently IN_PROGRESS
+        const updateResult = await tx.match.updateMany({
+            where: {
+                id: input.matchId,
+                status: MatchStatus.IN_PROGRESS, // Atomic condition check
+            },
+            data: {
+                status: MatchStatus.FINISHED,
+                winnerId: input.winnerId,
+                endedAt: new Date(),
+            }
+        });
+
+        // If count === 0, another request already finished this match!
+        if (updateResult.count === 0) {
+            throw new Error('Match is not in progress or has already ended');
         }
 
+        // 3. Compute ELO & Stat Logic
         const p1Elo = match.player1.elo;
         const p2Elo = match.player2.elo;
 
-        const { p1EloChange, p2EloChange } = this.calculateEloChange(p1Elo, p2Elo, input.winnerId === match.player1Id? 1 : input.winnerId === match.player2Id? 2 : 0);
-
         const isP1Winner = input.winnerId === match.player1Id;
         const isP2Winner = input.winnerId === match.player2Id;
+        const isDraw = input.winnerId === null;
 
-        const [updatedMatch] = await prisma.$transaction([
-            prisma.match.update({
-                where: {id: input.matchId},
-                data: {
-                    status: MatchStatus.FINISHED,
-                    winnerId: input.winnerId,
-                    p1EloChange: p1EloChange,
-                    p2EloChange: p2EloChange,
-                    endedAt: new Date(),
-                },
-                include: MatchDetailsInclude,
-            }),
+        const winnerNumeric = isP1Winner ? 1 : isP2Winner ? 2 : 0;
+        const { p1EloChange, p2EloChange } = this.calculateEloChange(p1Elo, p2Elo, winnerNumeric);
 
-            prisma.user.update({
-                where: {id: match.player1Id},
-                data: {
-                    elo: {increment: p1EloChange},
-                    wins: {increment: isP1Winner? 1 : 0},
-                    losses: {increment: isP1Winner? 0 : 1},
-                }
-            }),
+        // 4. Record ELO changes on the match record
+        await tx.match.update({
+            where: { id: input.matchId },
+            data: {
+                p1EloChange,
+                p2EloChange,
+            }
+        });
 
-            prisma.user.update({
-                where: {id: match.player2Id},
-                data: {
-                    elo: {increment: p2EloChange},
-                    wins: {increment: isP2Winner? 1 : 0},
-                    losses: {increment: isP2Winner? 0 : 1},
-                }
-            }),
-        ]);
+        // 5. Update Player 1 Stats (Draws do not count as losses)
+        await tx.user.update({
+            where: { id: match.player1Id },
+            data: {
+                elo: { increment: p1EloChange },
+                wins: { increment: isP1Winner ? 1 : 0 },
+                losses: { increment: !isP1Winner && !isDraw ? 1 : 0 },
+            }
+        });
 
-        return updatedMatch;
-    }
+        // 6. Update Player 2 Stats
+        await tx.user.update({
+            where: { id: match.player2Id },
+            data: {
+                elo: { increment: p2EloChange },
+                wins: { increment: isP2Winner ? 1 : 0 },
+                losses: { increment: !isP2Winner && !isDraw ? 1 : 0 },
+            }
+        });
+
+        // 7. Return complete match details
+        return await tx.match.findUniqueOrThrow({
+            where: { id: input.matchId },
+            include: MatchDetailsInclude,
+        });
+    });
+}
 
     static async getMatchesForUser(userId: string): Promise<MatchDetails[]> {
         const matches = await prisma.match.findMany({
