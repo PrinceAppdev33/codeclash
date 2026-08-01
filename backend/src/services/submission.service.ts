@@ -70,4 +70,29 @@ export class SubmissionService {
 
     return updatedSubmission;
   }
+
+  static async runPublicTestCases(dto: CreateSubmissionDto) {
+    const { userId, matchId, code, language } = dto;
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: { problem: true }
+    });
+
+    if (!match || match.status !== MatchStatus.IN_PROGRESS) {
+      throw new Error("Match is not active.");
+    }
+
+    if (match.player1Id !== userId && match.player2Id !== userId) {
+      throw new Error("User does not belong to this match.");
+    }
+
+    if (!match.problem) {
+      throw new Error("No problem attached to this match.");
+    }
+
+    const publicTestCases = match.problem.publicTestCases as unknown as TestCase[];
+    const judgeResult = await JudgeService.evaluate(code, language, publicTestCases);
+
+    return judgeResult;
+  }
 }
