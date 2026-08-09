@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import { prisma } from './config/db.js';
 import passport from './config/passport.js';
 import routes from './routes/index.js';
+import { initSocketServer } from './sockets/index.js';
+import { createServer } from 'http';
 
 
 dotenv.config();
@@ -16,6 +18,10 @@ app.use(express.json());
 app.use(passport.initialize());
 app.use('/api', routes);
 app.use(express.urlencoded({ extended: true}));
+
+const httpServer = createServer(app);
+
+initSocketServer(httpServer);
 
 
 app.get('/health', async (req, res) => {
