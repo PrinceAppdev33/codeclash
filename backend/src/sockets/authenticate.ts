@@ -4,7 +4,13 @@ import jwt from 'jsonwebtoken';
 
 export const socketAuthenticate = (socket: Socket, next: (err?: Error) => void) => {
     try {
-        const userId = socket.handshake.auth.userId;
+        const token = socket.handshake.auth.token;
+        if(!token) {
+            return next(new Error('Authentication error: No token provided'));
+        }
+
+        const payload = jwt.verify(token, process.env.JWT_SECRET || 'Aryan@123');
+        const userId = (payload as any).userId;
         if(!userId) {
             return next(new Error('Authentication error: No userId provided'));
         }
