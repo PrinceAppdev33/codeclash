@@ -4,7 +4,7 @@ import { Router } from 'express';
 
 const router = Router();
 
-router.post('/submitCode', AuthMiddleware, submitCode);
-router.post('/runPublicTestCases', AuthMiddleware, runPublicTestCases);
+router.post('/submit', AuthMiddleware, submitCode);
+router.post('/run', AuthMiddleware, runPublicTestCases);
 
 export default router;

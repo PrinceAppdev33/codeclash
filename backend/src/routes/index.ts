@@ -6,7 +6,7 @@ import submissionRoutes from './submission.route.js';
 
 const router = Router();
 router.use('/auth', authRoutes);
-router.use('/match', matchRoutes);
-router.use('/submission', submissionRoutes);
+router.use('/matches', matchRoutes);
+router.use('/execute', submissionRoutes);
 
 export default router;

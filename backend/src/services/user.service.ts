@@ -39,14 +39,7 @@ export class UserService {
             throw new Error("Email already exists");
         }
        
-        
-        const existingUsername = await prisma.user.findUnique({
-            where: { username: input.username },
-        });
-        if (existingUsername) {
-            throw new Error('Username is already taken');
-        }
-
+    
         const hashedPassword = await bcrypt.hash(input.password, 10);
         const newUser = await prisma.user.create({
             data: {

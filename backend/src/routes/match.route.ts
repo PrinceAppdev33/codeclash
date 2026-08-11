@@ -5,7 +5,7 @@
     const router = Router();
 
     router.post("/startMatch", AuthMiddleware, createMatch);
-    router.get("/getMatch/:id", AuthMiddleware, getMatchById);
+    router.get("/:matchId", AuthMiddleware, getMatchById);
     router.post("/finishMatch", AuthMiddleware, finishMatch);
 
     export default router;

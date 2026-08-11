@@ -3,6 +3,7 @@ import { prisma } from '../config/db.js';
 import { JudgeService, type TestCase } from './judge.service.js';
 import { MatchStatus, SubmissionVerdict } from '@prisma/client';
 import { MatchService } from './match.service.js';
+import { getIO } from '../sockets/index.js';
 
 export interface CreateSubmissionDto {
   userId: string;
@@ -15,7 +16,6 @@ export class SubmissionService {
   static async submitCode(dto: CreateSubmissionDto) {
     const { userId, matchId, code, language } = dto;
 
-    // 1. Validate Match & Player Eligibility
     const match = await prisma.match.findUnique({
       where: { id: matchId },
       include: { problem: true }
@@ -33,13 +33,11 @@ export class SubmissionService {
       throw new Error("No problem attached to this match.");
     }
 
-    // 2. Extract Hidden + Public Testcases safely from JSON
     const testCases = [
       ...(match.problem.publicTestCases as unknown as TestCase[]),
       ...(match.problem.hiddenTestCases as unknown as TestCase[])
     ];
 
-    // 3. Create initial pending submission record
     const submission = await prisma.submission.create({
       data: {
         userId,
@@ -51,10 +49,8 @@ export class SubmissionService {
       }
     });
 
-    // 4. Run Evaluation
     const judgeResult = await JudgeService.evaluate(code, language, testCases);
 
-    // 5. Update Submission Record
     const updatedSubmission = await prisma.submission.update({
       where: { id: submission.id },
       data: {
@@ -63,9 +59,9 @@ export class SubmissionService {
       }
     });
 
-    // 6. Trigger Match End if Accepted
     if (judgeResult.verdict === SubmissionVerdict.ACCEPTED) {
-      await MatchService.finishMatch({ matchId, winnerId: userId });
+      const finishedMatch = await MatchService.finishMatch({ matchId, winnerId: userId });
+      getIO().to(`match-${matchId}`).emit('match:ended', finishedMatch);
     }
 
     return updatedSubmission;

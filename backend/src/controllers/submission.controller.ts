@@ -1,15 +1,20 @@
 import { SubmissionService } from '../services/submission.service.js';
 import type { Request, Response } from 'express';
 
-export const submitCode = async (req: Request, res: Response) => {
+interface AuthenticatedRequest extends Request {
+    userId?: string;
+}
+
+export const submitCode = async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const { userId, matchId, code, language } = req.body;
+        const userId = req.userId;
+        const { matchId, code, language } = req.body;
 
         if (!userId || !matchId || !code || !language) {
             return res.status(400).json({
                 data: {},
                 success: false,
-                message: "Missing required fields: userId, matchId, code, language",
+                message: "Missing required fields: matchId, code, language",
                 err: {}
             });
         }
@@ -34,9 +39,20 @@ export const submitCode = async (req: Request, res: Response) => {
 }
 
 
-export const runPublicTestCases = async (req: Request, res: Response) => {
+export const runPublicTestCases = async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const { userId, matchId, code, language} = req.body;
+        const userId = req.userId;
+        const { matchId, code, language } = req.body;
+
+        if (!userId || !matchId || !code || !language) {
+            return res.status(400).json({
+                data: {},
+                success: false,
+                message: "Missing required fields: matchId, code, language",
+                err: {}
+            });
+        }
+
         const submission = await SubmissionService.runPublicTestCases({ userId, matchId, code, language });
 
         return res.status(200).json({
