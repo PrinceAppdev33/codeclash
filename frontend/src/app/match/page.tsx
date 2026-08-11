@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import profileWall from '../../../public/images/profileWall.png';
+import { getSocket, disconnectSocket } from '../../lib/socket';
+import { useAppSelector } from '@/redux/hooks';
 
 const CodeEditor = dynamic(() => import('../../components/match/CodeEditor'), {
   ssr: false,
@@ -35,19 +37,62 @@ const PROBLEM = {
   difficulty: 'Easy' as const,
   statement:
     'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. Assume each input has exactly one solution, and you may not use the same element twice.',
-  examples: [
-    { input: 'nums = [2, 7, 11, 15], target = 9', output: '[0, 1]', explanation: 'nums[0] + nums[1] == 9, so return [0, 1].' },
+    examples: [
+      { input: 'nums = [2, 7, 11, 15], target = 9', output: '[0, 1]', explanation: 'nums[0] + nums[1] == 9, so return [0, 1].' },
     { input: 'nums = [3, 2, 4], target = 6', output: '[1, 2]' },
   ],
   constraints: ['2 <= nums.length <= 10^4', '-10^9 <= nums[i] <= 10^9', 'Only one valid answer exists.'],
 };
 
+
 export default function MatchPage() {
   const [language, setLanguage] = useState<Language>('C++');
   const [code, setCode] = useState(STARTER['C++']);
+  const token = useAppSelector((state) => state.auth.token);
   const [running, setRunning] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(24 * 60 + 13);
-
+  
+  useEffect(() => {
+        if(!token) return;
+        
+        const socket = getSocket(token);
+        
+        const handleConnect = () => {
+          console.log('Socket connected:', socket.id);
+          socket.emit('queue:join');
+        };
+  
+        const handleQueueJoined = () => {
+          console.log('Successfully joined the matchmaking queue.');
+        };
+  
+        const handleMatchFound = (match: any) => {
+          console.log('Match found:', match);
+          socket.emit('join_match', match.id);
+        }
+  
+        const handleQueueError = (error: any) => {
+          console.log('Match error:', error);
+        }
+  
+        socket.on('connect', handleConnect);
+        socket.on('queue:joined', handleQueueJoined);
+        socket.on('match:found', handleMatchFound);
+        socket.on('queue:error', handleQueueError);
+  
+  
+        if(socket.connected) {
+          handleConnect();
+        }
+        return () => {
+          socket.emit('queue:leave');
+          socket.off('connect', handleConnect);
+          socket.off('queue:joined', handleQueueJoined);
+          socket.off('match:found', handleMatchFound);
+          socket.off('queue:error', handleQueueError);
+          disconnectSocket();
+        }
+  }, [token]);
   useEffect(() => {
     const timer = setInterval(() => setSecondsLeft((p) => (p > 0 ? p - 1 : 0)), 1000);
     return () => clearInterval(timer);
