@@ -1,16 +1,18 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import profileWall from '../../../../public/images/cactus.png';
+import { InlineMath, BlockMath } from 'react-katex';
+import 'katex/dist/katex.min.css';
+// import profileWall from '../../../../public/images/cactus.png';
 import { getSocket } from '../../../lib/socket';
 import { useAppSelector } from '@/redux/hooks';
 
 const CodeEditor = dynamic(() => import('../../../components/match/CodeEditor'), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full w-full items-center justify-center bg-[#1c140d] text-[#fff8e7]">
+    <div className="flex h-full w-full items-center justify-center bg-[#1c140d] text-[#e2e8f0] font-sans text-sm">
       INITIALIZING IDE...
     </div>
   ),
@@ -66,6 +68,30 @@ interface TestResult {
   error?: string;
 }
 
+// Helper to render descriptions containing inline/block LaTeX formulas
+const FormattedMathText = ({ text }: { text: string }) => {
+  if (!text) return null;
+
+  // Split on block math $$...$$ and inline math $...$
+  const parts = text.split(/(\$\$.*?\$\$|\$.*?\$)/g);
+
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith('$$') && part.endsWith('$$')) {
+          const math = part.slice(2, -2);
+          return <BlockMath key={i} math={math} />;
+        }
+        if (part.startsWith('$') && part.endsWith('$')) {
+          const math = part.slice(1, -1);
+          return <InlineMath key={i} math={math} />;
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+};
+
 export default function MatchPage() {
   const params = useParams();
   const router = useRouter();
@@ -86,7 +112,6 @@ export default function MatchPage() {
   const [secondsLeft, setSecondsLeft] = useState<number>(1800);
   const [opponentStatus, setOpponentStatus] = useState<string>('In Progress');
 
-  // Fetch initial match details via REST API
   useEffect(() => {
     if (!matchId || !token) return;
 
@@ -112,7 +137,6 @@ export default function MatchPage() {
     fetchMatch();
   }, [matchId, token, router]);
 
-  // WebSocket lifecycle & real-time event listeners
   useEffect(() => {
     if (!token || !matchId) return;
 
@@ -148,7 +172,6 @@ export default function MatchPage() {
     };
   }, [token, matchId, router, currentUserId]);
 
-  // Countdown Timer
   useEffect(() => {
     const timer = setInterval(() => setSecondsLeft((p) => (p > 0 ? p - 1 : 0)), 1000);
     return () => clearInterval(timer);
@@ -169,7 +192,7 @@ export default function MatchPage() {
         body: JSON.stringify({
           language: MONACO_LANG_MAP[language],
           code,
-          problemId: match.problem.id,
+          matchId: match.id,
         }),
       });
 
@@ -220,7 +243,7 @@ export default function MatchPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-[#120a04] text-[#fff8e7]">
+      <div className="flex h-screen w-screen items-center justify-center bg-[#120a04] text-[#e2e8f0] font-sans text-sm">
         LOADING MATCH...
       </div>
     );
@@ -233,82 +256,107 @@ export default function MatchPage() {
 
   return (
     <div
-      className="flex h-screen w-screen flex-col overflow-hidden text-[#fff8e7]"
+      className="flex h-screen w-screen flex-col overflow-hidden text-[#e2e8f0] font-sans text-sm"
       style={{
-        backgroundImage: `url(${profileWall.src})`,
+        fontFamily: "'Press Start 2P', 'VT323', monospace",
+        backgroundColor: '#5a2c10',
+        backgroundImage: "url('/images/profileWall.png')",
+        backgroundSize: '128px 128px',
         backgroundRepeat: 'repeat',
-        backgroundSize: '96px 96px',
-        imageRendering: 'pixelated',
+        backgroundPosition: 'top left',
       }}
     >
-      <header className="flex h-11 shrink-0 items-center justify-between border-b border-[#7a5230] bg-[#211207]/90 px-3">
+      {/* HEADER */}
+      <header className="flex h-11 shrink-0 items-center justify-between border-b border-[#7a5230] bg-[#211207]/90 px-4">
         <button
           type="button"
           onClick={() => router.push('/')}
-          className="border border-[#fff8e7]/40 bg-[#2b1608] px-2.5 py-1 text-[11px] font-bold text-[#fff8e7] transition hover:bg-[#3b1a0b]"
+          className="border border-[#7a5230] bg-[#2b1608] px-3 py-1 text-xs font-semibold text-[#fff8e7] transition hover:bg-[#3b1a0b] rounded"
         >
-          {'< BACK TO TOWN'}
+          &larr; BACK TO TOWN
         </button>
 
-        <div className="flex items-center gap-4 text-xs font-bold">
+        <div className="flex items-center gap-6 text-xs font-semibold">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-[#fff8e7]/60">YOU</span>
-            <span>{you?.username || 'PLAYER'}</span>
-            <span className="text-yellow-400 text-[10px]">{you?.elo ?? 1200} ELO</span>
+            <span className="text-[10px] text-[#fff8e7]/60 tracking-wider">YOU</span>
+            <span className="text-[#fff8e7]">{you?.username || 'PLAYER'}</span>
+            <span className="text-yellow-400 text-[11px] font-mono">{you?.elo ?? 1200} ELO</span>
           </div>
 
-          <div className="flex items-center gap-1.5 border border-[#7a5230] bg-[#1c140d] px-3 py-0.5 rounded-sm">
-            <span className="text-[10px] text-[#fff8e7]/50">TIME</span>
-            <span className="font-mono text-yellow-400 tabular-nums">{minutes}:{seconds}</span>
+          <div className="flex items-center gap-2 border border-[#7a5230] bg-[#1c140d] px-3 py-1 rounded">
+            <span className="text-[10px] text-[#fff8e7]/60 tracking-wider">TIME</span>
+            <span className="font-mono text-yellow-400 text-sm font-bold tabular-nums">{minutes}:{seconds}</span>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-[#fff8e7]/60">RIVAL</span>
-            <span>{rival?.username || 'OPPONENT'}</span>
-            <span className="text-yellow-400 text-[10px]">{rival?.elo ?? 1200} ELO</span>
-            <span className="text-[9px] text-yellow-500/80">({opponentStatus})</span>
+            <span className="text-[10px] text-[#fff8e7]/60 tracking-wider">RIVAL</span>
+            <span className="text-[#fff8e7]">{rival?.username || 'OPPONENT'}</span>
+            <span className="text-yellow-400 text-[11px] font-mono">{rival?.elo ?? 1200} ELO</span>
+            <span className="text-[10px] text-yellow-500/80">({opponentStatus})</span>
           </div>
         </div>
       </header>
 
-      <main className="flex h-[calc(100vh-44px)] w-full gap-1 p-1 bg-[#120a04]">
+      {/* MAIN CONTENT AREA */}
+      <main className="flex h-[calc(100vh-44px)] w-full gap-2 p-2 bg-[#120a04]">
+        {/* LEFT COLUMN: PROBLEM STATEMENT */}
         <section
-          className="w-1/2 flex flex-col overflow-hidden border border-[#7a5230] text-[#fff8e7]"
+          className="w-1/2 flex flex-col overflow-hidden border border-[#7a5230] rounded bg-[#211207]/95"
           style={{
-            backgroundImage: `url(${profileWall.src})`,
+            fontFamily: "'Press Start 2P', 'VT323', monospace",
+            backgroundColor: '#5a2c10',
+            backgroundImage: "url('/images/profileWall.png')",
+            backgroundSize: '128px 128px',
             backgroundRepeat: 'repeat',
-            backgroundSize: '96px 96px',
-            imageRendering: 'pixelated',
+            backgroundPosition: 'top left',
           }}
         >
-          <div className="flex-1 overflow-y-auto p-5 bg-[#211207]/90">
-            <div className="mb-3 flex items-center gap-2">
-              <h1 className="font-bold text-xl">{problem?.title || 'Problem Title'}</h1>
-              <span className="bg-green-700 px-2 py-0.5 text-[10px] font-bold text-white rounded-sm">
+          <div className="flex-1 overflow-y-auto p-6 bg-[#211207]/90 leading-relaxed">
+            <div className="mb-4 flex items-center justify-between border-b border-[#7a5230]/40 pb-3">
+              <h1 className="font-bold text-2xl text-white tracking-wide">{problem?.title || 'Problem Title'}</h1>
+              <span className="bg-emerald-800/80 border border-emerald-600 px-2.5 py-0.5 text-xs font-semibold text-emerald-200 rounded">
                 {problem?.difficulty || 'EASY'}
               </span>
             </div>
 
-            <p className="mb-4 text-sm leading-relaxed text-[#fff8e7]">
-              {problem?.description || 'No description available.'}
-            </p>
-
-            <div className="mb-4 flex flex-col gap-3">
-              {problem?.publicTestCases?.map((ex, i) => (
-                <div key={i} className="border-l-2 border-[#7a5230] bg-[#29190a] p-3 text-xs">
-                  <p className="font-bold text-[#fff8e7] mb-1">EXAMPLE {i + 1}</p>
-                  <p className="font-mono"><span className="font-bold">Input: </span>{ex.input}</p>
-                  <p className="font-mono"><span className="font-bold">Output: </span>{ex.output}</p>
-                </div>
-              ))}
+            {/* DESCRIPTION WITH KATEX MATH */}
+            <div className="mb-6 text-sm text-[#e2e8f0]/90 whitespace-pre-wrap leading-relaxed space-y-3">
+              <FormattedMathText text={problem?.description || 'No description available.'} />
             </div>
 
+            {/* EXAMPLES SECTION */}
+            {problem?.publicTestCases && problem.publicTestCases.length > 0 && (
+              <div className="mb-6 space-y-3">
+                <h2 className="text-xs font-bold text-[#fff8e7] tracking-wider uppercase border-b border-[#7a5230]/30 pb-1">
+                  Examples
+                </h2>
+                {problem.publicTestCases.map((ex, i) => (
+                  <div key={i} className="rounded border border-[#7a5230]/60 bg-[#170c04] p-3 text-xs space-y-2">
+                    <p className="font-bold text-yellow-400/90 text-[11px]">EXAMPLE {i + 1}</p>
+                    <div>
+                      <span className="text-[#fff8e7]/60 block mb-0.5">Input:</span>
+                      <pre className="font-mono bg-[#0d0702] p-2 rounded text-[#e2e8f0] overflow-x-auto">{ex.input}</pre>
+                    </div>
+                    <div>
+                      <span className="text-[#fff8e7]/60 block mb-0.5">Output:</span>
+                      <pre className="font-mono bg-[#0d0702] p-2 rounded text-[#e2e8f0] overflow-x-auto">{ex.output}</pre>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* CONSTRAINTS */}
             {problem?.constraints && problem.constraints.length > 0 && (
-              <div>
-                <p className="text-xs font-bold text-[#fff8e7] mb-1">CONSTRAINTS</p>
-                <ul className="list-disc space-y-0.5 pl-4 font-mono text-xs text-[#fff8e7]">
+              <div className="space-y-2">
+                <h2 className="text-xs font-bold text-[#fff8e7] tracking-wider uppercase border-b border-[#7a5230]/30 pb-1">
+                  Constraints
+                </h2>
+                <ul className="list-disc space-y-1 pl-5 font-mono text-xs text-[#e2e8f0]/80">
                   {problem.constraints.map((c, i) => (
-                    <li key={i}>{c}</li>
+                    <li key={i}>
+                      <FormattedMathText text={c} />
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -316,9 +364,10 @@ export default function MatchPage() {
           </div>
         </section>
 
-        <section className="w-1/2 flex flex-col overflow-hidden border border-[#7a5230] bg-[#1c140d]">
-          <div className="flex h-9 shrink-0 items-center justify-between border-b border-[#7a5230] bg-[#241a10] px-2">
-            <div className="flex gap-1">
+        {/* RIGHT COLUMN: EDITOR & OUTPUT */}
+        <section className="w-1/2 flex flex-col overflow-hidden border border-[#7a5230] rounded bg-[#1c140d]">
+          <div className="flex h-10 shrink-0 items-center justify-between border-b border-[#7a5230] bg-[#241a10] px-3">
+            <div className="flex gap-1.5">
               {LANGUAGES.map((lang) => (
                 <button
                   key={lang}
@@ -327,7 +376,7 @@ export default function MatchPage() {
                     setLanguage(lang);
                     setCode(STARTER[lang]);
                   }}
-                  className={`px-2.5 py-0.5 text-[11px] font-bold transition ${
+                  className={`px-3 py-1 text-xs font-semibold rounded transition ${
                     language === lang
                       ? 'bg-yellow-500 text-[#1c140d]'
                       : 'bg-[#3b2a17] text-[#fff8e7]/70 hover:bg-[#4a3620]'
@@ -337,12 +386,12 @@ export default function MatchPage() {
                 </button>
               ))}
             </div>
-            <div className="flex gap-1.5">
+            <div className="flex gap-2">
               <button
                 type="button"
                 disabled={running || submitting}
                 onClick={handleRunTests}
-                className="bg-[#3b2a17] px-3 py-0.5 text-[11px] font-bold border border-[#7a5230] hover:bg-[#4a3620] disabled:opacity-50"
+                className="bg-[#3b2a17] px-3.5 py-1 text-xs font-semibold border border-[#7a5230] hover:bg-[#4a3620] disabled:opacity-50 rounded"
               >
                 {running ? 'RUNNING...' : 'RUN TESTS'}
               </button>
@@ -350,7 +399,7 @@ export default function MatchPage() {
                 type="button"
                 disabled={running || submitting}
                 onClick={handleSubmit}
-                className="bg-yellow-500 px-3 py-0.5 text-[11px] font-bold text-[#1c140d] hover:bg-yellow-400 disabled:opacity-50"
+                className="bg-yellow-500 px-3.5 py-1 text-xs font-semibold text-[#1c140d] hover:bg-yellow-400 disabled:opacity-50 rounded"
               >
                 {submitting ? 'SUBMITTING...' : 'SUBMIT'}
               </button>
@@ -365,26 +414,27 @@ export default function MatchPage() {
             />
           </div>
 
-          <div className="h-36 shrink-0 border-t border-[#7a5230] bg-[#241a10] p-3 text-xs font-mono overflow-y-auto">
-            <p className="text-[#fff8e7]/60 font-bold mb-1">TEST RESULTS</p>
+          {/* TEST RESULTS */}
+          <div className="h-40 shrink-0 border-t border-[#7a5230] bg-[#170d06] p-3 text-xs font-mono overflow-y-auto">
+            <p className="text-[#fff8e7]/60 font-bold mb-2 tracking-wider">TEST RESULTS</p>
             {!testResults ? (
-              <p className="text-[#fff8e7]/40">Run or submit your code to see output here...</p>
+              <p className="text-[#fff8e7]/40 italic">Run or submit your code to see output here...</p>
             ) : (
               <div className="space-y-2">
                 {testResults.map((res, idx) => (
                   <div
                     key={idx}
-                    className={`p-1.5 rounded border ${
+                    className={`p-2 rounded border ${
                       res.passed
-                        ? 'border-green-600/50 bg-green-950/30 text-green-300'
-                        : 'border-red-600/50 bg-red-950/30 text-red-300'
+                        ? 'border-emerald-600/50 bg-emerald-950/20 text-emerald-300'
+                        : 'border-rose-600/50 bg-rose-950/20 text-rose-300'
                     }`}
                   >
-                    <p className="font-bold">Test #{idx + 1}: {res.passed ? 'PASSED' : 'FAILED'}</p>
-                    <p>Input: {res.input}</p>
-                    <p>Expected: {res.expectedOutput}</p>
-                    {res.actualOutput && <p>Actual: {res.actualOutput}</p>}
-                    {res.error && <p className="text-red-400">Error: {res.error}</p>}
+                    <p className="font-bold mb-1">Test #{idx + 1}: {res.passed ? 'PASSED' : 'FAILED'}</p>
+                    <p><span className="opacity-60">Input:</span> {res.input}</p>
+                    <p><span className="opacity-60">Expected:</span> {res.expectedOutput}</p>
+                    {res.actualOutput && <p><span className="opacity-60">Actual:</span> {res.actualOutput}</p>}
+                    {res.error && <p className="text-rose-400 mt-1">Error: {res.error}</p>}
                   </div>
                 ))}
               </div>
