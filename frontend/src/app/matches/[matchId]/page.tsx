@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { InlineMath, BlockMath } from 'react-katex';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
-// import profileWall from '../../../../public/images/cactus.png';
 import { getSocket } from '../../../lib/socket';
 import { useAppSelector } from '@/redux/hooks';
 
@@ -68,27 +69,19 @@ interface TestResult {
   error?: string;
 }
 
-// Helper to render descriptions containing inline/block LaTeX formulas
+// Markdown & KaTeX Math Renderer
 const FormattedMathText = ({ text }: { text: string }) => {
   if (!text) return null;
 
-  // Split on block math $$...$$ and inline math $...$
-  const parts = text.split(/(\$\$.*?\$\$|\$.*?\$)/g);
-
   return (
-    <>
-      {parts.map((part, i) => {
-        if (part.startsWith('$$') && part.endsWith('$$')) {
-          const math = part.slice(2, -2);
-          return <BlockMath key={i} math={math} />;
-        }
-        if (part.startsWith('$') && part.endsWith('$')) {
-          const math = part.slice(1, -1);
-          return <InlineMath key={i} math={math} />;
-        }
-        return <span key={i}>{part}</span>;
-      })}
-    </>
+    <div className="prose prose-invert max-w-none text-sm text-[#e2e8f0]/90 leading-relaxed font-sans">
+      <ReactMarkdown
+        remarkPlugins={[remarkMath]}
+        rehypePlugins={[rehypeKatex]}
+      >
+        {text}
+      </ReactMarkdown>
+    </div>
   );
 };
 
@@ -258,7 +251,6 @@ export default function MatchPage() {
     <div
       className="flex h-screen w-screen flex-col overflow-hidden text-[#e2e8f0] font-sans text-sm"
       style={{
-        fontFamily: "'Press Start 2P', 'VT323', monospace",
         backgroundColor: '#5a2c10',
         backgroundImage: "url('/images/profileWall.png')",
         backgroundSize: '128px 128px',
@@ -300,18 +292,8 @@ export default function MatchPage() {
       {/* MAIN CONTENT AREA */}
       <main className="flex h-[calc(100vh-44px)] w-full gap-2 p-2 bg-[#120a04]">
         {/* LEFT COLUMN: PROBLEM STATEMENT */}
-        <section
-          className="w-1/2 flex flex-col overflow-hidden border border-[#7a5230] rounded bg-[#211207]/95"
-          style={{
-            fontFamily: "'Press Start 2P', 'VT323', monospace",
-            backgroundColor: '#5a2c10',
-            backgroundImage: "url('/images/profileWall.png')",
-            backgroundSize: '128px 128px',
-            backgroundRepeat: 'repeat',
-            backgroundPosition: 'top left',
-          }}
-        >
-          <div className="flex-1 overflow-y-auto p-6 bg-[#211207]/90 leading-relaxed">
+        <section className="w-1/2 flex flex-col overflow-hidden border border-[#7a5230] rounded bg-[#211207]/95">
+          <div className="flex-1 overflow-y-auto p-6 bg-[#211207]/90 leading-relaxed font-sans">
             <div className="mb-4 flex items-center justify-between border-b border-[#7a5230]/40 pb-3">
               <h1 className="font-bold text-2xl text-white tracking-wide">{problem?.title || 'Problem Title'}</h1>
               <span className="bg-emerald-800/80 border border-emerald-600 px-2.5 py-0.5 text-xs font-semibold text-emerald-200 rounded">
@@ -319,8 +301,8 @@ export default function MatchPage() {
               </span>
             </div>
 
-            {/* DESCRIPTION WITH KATEX MATH */}
-            <div className="mb-6 text-sm text-[#e2e8f0]/90 whitespace-pre-wrap leading-relaxed space-y-3">
+            {/* DESCRIPTION WITH MARKDOWN & KATEX MATH */}
+            <div className="mb-6 space-y-3">
               <FormattedMathText text={problem?.description || 'No description available.'} />
             </div>
 
@@ -335,11 +317,11 @@ export default function MatchPage() {
                     <p className="font-bold text-yellow-400/90 text-[11px]">EXAMPLE {i + 1}</p>
                     <div>
                       <span className="text-[#fff8e7]/60 block mb-0.5">Input:</span>
-                      <pre className="font-mono bg-[#0d0702] p-2 rounded text-[#e2e8f0] overflow-x-auto">{ex.input}</pre>
+                      <pre className="font-mono bg-[#0d0702] p-2 rounded text-[#e2e8f0] overflow-x-auto whitespace-pre">{ex.input}</pre>
                     </div>
                     <div>
                       <span className="text-[#fff8e7]/60 block mb-0.5">Output:</span>
-                      <pre className="font-mono bg-[#0d0702] p-2 rounded text-[#e2e8f0] overflow-x-auto">{ex.output}</pre>
+                      <pre className="font-mono bg-[#0d0702] p-2 rounded text-[#e2e8f0] overflow-x-auto whitespace-pre">{ex.output}</pre>
                     </div>
                   </div>
                 ))}
@@ -352,7 +334,7 @@ export default function MatchPage() {
                 <h2 className="text-xs font-bold text-[#fff8e7] tracking-wider uppercase border-b border-[#7a5230]/30 pb-1">
                   Constraints
                 </h2>
-                <ul className="list-disc space-y-1 pl-5 font-mono text-xs text-[#e2e8f0]/80">
+                <ul className="list-disc space-y-1 pl-5 text-xs text-[#e2e8f0]/80">
                   {problem.constraints.map((c, i) => (
                     <li key={i}>
                       <FormattedMathText text={c} />
