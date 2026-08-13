@@ -52,9 +52,13 @@ const normalizeTestCases = (value: unknown): ContestTestCase[] => {
         const record = entry as Record<string, unknown>;
 
         if (record.input !== undefined && record.output !== undefined) {
+            // input/output come from data.json as `unknown` — if the source
+            // ever has a number, object, or array here instead of a string,
+            // JudgeService's string ops (.replace/.trim) throw at judge time.
+            // Coerce here so every row in the DB is guaranteed a real string.
             return [{
-                input: record.input,
-                output: record.output,
+                input: typeof record.input === "string" ? record.input : JSON.stringify(record.input),
+                output: typeof record.output === "string" ? record.output : JSON.stringify(record.output),
                 solution: record.solution,
             }];
         }

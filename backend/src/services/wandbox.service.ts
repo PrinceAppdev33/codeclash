@@ -30,6 +30,8 @@ export class WandBoxService {
             compiler,
             code,
             stdin,
+        }, {
+            timeout: 15000, // fail fast instead of hanging the whole submission
         });
         
         return {

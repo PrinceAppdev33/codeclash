@@ -31,6 +31,7 @@ export const MatchDetailsInclude = Prisma.validator<Prisma.MatchInclude>()({
             slug: true,
             difficulty: true,
             description: true,
+            constraints: true,
             starterCode: true,
             publicTestCases: true,
         }
@@ -238,4 +239,3 @@ export class MatchService {
     }
 
 }
-

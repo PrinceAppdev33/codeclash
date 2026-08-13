@@ -49,7 +49,7 @@ interface ProblemInfo {
   title: string;
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   description: string;
-  constraints: string[];
+  constraints: string | null;
   publicTestCases: { input: string; output: string }[];
 }
 
@@ -66,6 +66,12 @@ interface TestResult {
   expectedOutput: string;
   actualOutput?: string;
   passed: boolean;
+  error?: string;
+}
+
+interface SubmitVerdict {
+  status: string;
+  executionTime?: number;
   error?: string;
 }
 
@@ -102,6 +108,8 @@ export default function MatchPage() {
   const [running, setRunning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [testResults, setTestResults] = useState<TestResult[] | null>(null);
+  const [submitVerdict, setSubmitVerdict] = useState<SubmitVerdict | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState<number>(1800);
   const [opponentStatus, setOpponentStatus] = useState<string>('In Progress');
 
@@ -174,6 +182,8 @@ export default function MatchPage() {
     if (!match?.problem) return;
     setRunning(true);
     setTestResults(null);
+    setSubmitVerdict(null);
+    setActionError(null);
 
     try {
       const res = await fetch(`${API_URL}/api/execute/run`, {
@@ -189,10 +199,17 @@ export default function MatchPage() {
         }),
       });
 
-      const data = await res.json();
-      setTestResults(data.results || []);
+      const body = await res.json();
+      if (!res.ok || !body.success) {
+        setActionError((typeof body.err === 'string' && body.err) || body.message || 'Failed to run tests.');
+        return;
+      }
+
+      // /api/execute/run returns an array of per-testcase results in `data`.
+      setTestResults(body.data as TestResult[]);
     } catch (err) {
       console.error('Execution error:', err);
+      setActionError('Could not reach the server to run tests. Check your connection and try again.');
     } finally {
       setRunning(false);
     }
@@ -201,6 +218,9 @@ export default function MatchPage() {
   const handleSubmit = async () => {
     if (!match?.problem) return;
     setSubmitting(true);
+    setTestResults(null);
+    setSubmitVerdict(null);
+    setActionError(null);
 
     try {
       const res = await fetch(`${API_URL}/api/execute/submit`, {
@@ -217,15 +237,24 @@ export default function MatchPage() {
         }),
       });
 
-      const data = await res.json();
-      setTestResults(data.results || []);
-
-      if (data.passed && token) {
-        const socket = getSocket(token);
-        socket.emit('match:submit_success', { matchId, userId: currentUserId });
+      const body = await res.json();
+      if (!res.ok || !body.success) {
+        setActionError((typeof body.err === 'string' && body.err) || body.message || 'Submission failed.');
+        return;
       }
+
+      // /api/execute/submit returns a single submission record in `data`
+      // (status/executionTime/error) — not a per-testcase list, since
+      // submissions run against hidden test cases too.
+      setSubmitVerdict({
+        status: body.data.status,
+        executionTime: body.data.executionTime,
+        error: body.data.error,
+      });
+      // match:ended (on ACCEPTED) is handled separately via the socket listener.
     } catch (err) {
       console.error('Submit error:', err);
+      setActionError('Could not reach the server to submit. Check your connection and try again.');
     } finally {
       setSubmitting(false);
     }
@@ -329,17 +358,21 @@ export default function MatchPage() {
             )}
 
             {/* CONSTRAINTS */}
-            {problem?.constraints && problem.constraints.length > 0 && (
+            {problem?.constraints && problem.constraints.trim().length > 0 && (
               <div className="space-y-2">
                 <h2 className="text-xs font-bold text-[#fff8e7] tracking-wider uppercase border-b border-[#7a5230]/30 pb-1">
                   Constraints
                 </h2>
                 <ul className="list-disc space-y-1 pl-5 text-xs text-[#e2e8f0]/80">
-                  {problem.constraints.map((c, i) => (
-                    <li key={i}>
-                      <FormattedMathText text={c} />
-                    </li>
-                  ))}
+                  {problem.constraints
+                    .split('\n')
+                    .map((line) => line.trim())
+                    .filter((line) => line.length > 0)
+                    .map((line, i) => (
+                      <li key={i}>
+                        <FormattedMathText text={line} />
+                      </li>
+                    ))}
                 </ul>
               </div>
             )}
@@ -399,7 +432,26 @@ export default function MatchPage() {
           {/* TEST RESULTS */}
           <div className="h-40 shrink-0 border-t border-[#7a5230] bg-[#170d06] p-3 text-xs font-mono overflow-y-auto">
             <p className="text-[#fff8e7]/60 font-bold mb-2 tracking-wider">TEST RESULTS</p>
-            {!testResults ? (
+            {actionError ? (
+              <div className="p-2 rounded border border-rose-600/50 bg-rose-950/20 text-rose-300">
+                <p className="font-bold mb-1">Error</p>
+                <p>{actionError}</p>
+              </div>
+            ) : submitVerdict ? (
+              <div
+                className={`p-2 rounded border ${
+                  submitVerdict.status === 'ACCEPTED'
+                    ? 'border-emerald-600/50 bg-emerald-950/20 text-emerald-300'
+                    : 'border-rose-600/50 bg-rose-950/20 text-rose-300'
+                }`}
+              >
+                <p className="font-bold mb-1">{submitVerdict.status.replace(/_/g, ' ')}</p>
+                {typeof submitVerdict.executionTime === 'number' && (
+                  <p><span className="opacity-60">Time:</span> {submitVerdict.executionTime}s</p>
+                )}
+                {submitVerdict.error && <p className="text-rose-400 mt-1 whitespace-pre-wrap">{submitVerdict.error}</p>}
+              </div>
+            ) : !testResults ? (
               <p className="text-[#fff8e7]/40 italic">Run or submit your code to see output here...</p>
             ) : (
               <div className="space-y-2">

@@ -62,9 +62,19 @@ export class SubmissionService {
     if (judgeResult.verdict === SubmissionVerdict.ACCEPTED) {
       const finishedMatch = await MatchService.finishMatch({ matchId, winnerId: userId });
       getIO().to(`match-${matchId}`).emit('match:ended', finishedMatch);
+    } else {
+      // Let the opponent know a submission came in and what happened to it —
+      // otherwise only the submitting player ever finds out.
+      getIO().to(`match-${matchId}`).emit('match:opponent_submitted', {
+        userId,
+        passed: false,
+        verdict: judgeResult.verdict
+      });
     }
 
-    return updatedSubmission;
+    // judgeResult.error isn't a DB column (schema has no field for it) — attach
+    // it to the response directly so the frontend can show *why* it failed.
+    return { ...updatedSubmission, error: judgeResult.error };
   }
 
   static async runPublicTestCases(dto: CreateSubmissionDto) {
@@ -87,8 +97,8 @@ export class SubmissionService {
     }
 
     const publicTestCases = match.problem.publicTestCases as unknown as TestCase[];
-    const judgeResult = await JudgeService.evaluate(code, language, publicTestCases);
-
-    return judgeResult;
+    // Per-test-case pass/fail breakdown — safe here since these are the
+    // PUBLIC test cases only, never the hidden ones.
+    return JudgeService.runAll(code, language, publicTestCases);
   }
 }
