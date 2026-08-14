@@ -37,7 +37,7 @@ model User {
   email             String      @unique
   password          String? 
   avatarUrl         String?
-  elo               Int         @default(1200)
+  elo               Int         @default(800)
   wins              Int         @default(0)
   losses            Int         @default(0)
   createdAt         DateTime    @default(now())

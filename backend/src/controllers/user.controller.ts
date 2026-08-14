@@ -10,11 +10,19 @@ interface AuthenticatedRequest extends Request {
 export const registerWithEmail = async (req: Request, res: Response) => {
     try {
         const result = await UserService.registerWithEmail(req.body as RegisterEmailInput);
-        return res.status(201).json(result);
+        return res.status(201).json({
+            data: result,
+            success: true,
+            message: "User registered successfully",
+            err: {}
+        });
     } catch (error: any) {
         console.log(error);
         return res.status(400).json({
-            message: error.message || 'User registration failed'
+            data: {},
+            success: false,
+            message: "User registration failed",
+            err: error
         });
     }
 }
@@ -23,11 +31,19 @@ export const registerWithEmail = async (req: Request, res: Response) => {
 export const loginWithEmail = async (req: Request, res: Response) => {
     try {
         const result = await UserService.loginWithEmail(req.body);
-        return res.status(200).json(result);
+        return res.status(200).json({
+            data: result,
+            success: true,
+            message: "User logged in successfully",
+            err: {}
+        });
     } catch (error: any) {
         console.log(error);
         return res.status(401).json({
-            message: error.message || 'User login failed'
+            data: {},
+            success: false,
+            message: "User login failed",
+            err: error
         });
     }
 }
