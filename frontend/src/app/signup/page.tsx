@@ -7,7 +7,7 @@ import { useAppDispatch } from '@/redux/hooks';
 import { setCredentials } from '@/redux/slices/authSlice';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function SignupPage() {
   const router = useRouter();
@@ -35,7 +35,6 @@ export default function SignupPage() {
     }
 
     setLoading(true);
-
     try {
       const response = await axios.post(
       `${API_URL}/api/auth/signup`,
