@@ -8,6 +8,8 @@ import axios from 'axios';
 import Image from 'next/image';
 import {GithubLoginButton} from '../../components/auth/GithubLoginButton';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 export default function LoginPage() {
   const router = useRouter();
   const [password, setPassword] = useState('');
@@ -17,7 +19,7 @@ export default function LoginPage() {
     e.preventDefault();
     try {
       const response = await axios.post(
-        'http://localhost:5000/api/auth/login',
+        `${API_URL}/api/auth/login`,
         { email, password },
         {
           headers: {

@@ -4,6 +4,8 @@ import { Provider } from 'react-redux'
 import { makeStore, AppStore } from '../redux/store'
 import { logout, setCredentials } from '../redux/slices/authSlice'
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 export default function StoreProvider({
   children
 }: {
@@ -37,7 +39,7 @@ export default function StoreProvider({
       }
 
       try {
-        const res = await fetch('http://localhost:5000/api/auth/me', {
+        const res = await fetch(`${API_URL}/api/auth/me`, {
           headers: {
             Authorization: `Bearer ${token}`
           }

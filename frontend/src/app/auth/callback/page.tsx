@@ -6,6 +6,8 @@ import { useAppDispatch } from '@/redux/hooks';
 import { setCredentials } from '@/redux/slices/authSlice';
 import axios from 'axios';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 function AuthCallbackContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -27,7 +29,7 @@ function AuthCallbackContent() {
     const authToken: string = token;
     const handleAuth = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/auth/me', {
+        const response = await axios.get(`${API_URL}/api/auth/me`, {
           headers: { Authorization: `Bearer ${authToken}` },
         });
 
