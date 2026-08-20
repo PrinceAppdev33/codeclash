@@ -13,7 +13,7 @@ export const registerWithEmail = async (req: Request, res: Response) => {
         return res.status(201).json({
             data: result,
             success: true,
-            message: "User registered successfully",
+            message: "Account created successfully",
             err: {}
         });
     } catch (error: any) {
@@ -21,8 +21,8 @@ export const registerWithEmail = async (req: Request, res: Response) => {
         return res.status(400).json({
             data: {},
             success: false,
-            message: "User registration failed",
-            err: error
+            message: error.message || 'User registration failed',
+            err: error.message || 'User registration failed'
         });
     }
 }
@@ -34,7 +34,7 @@ export const loginWithEmail = async (req: Request, res: Response) => {
         return res.status(200).json({
             data: result,
             success: true,
-            message: "User logged in successfully",
+            message: "Logged in successfully",
             err: {}
         });
     } catch (error: any) {
@@ -42,8 +42,8 @@ export const loginWithEmail = async (req: Request, res: Response) => {
         return res.status(401).json({
             data: {},
             success: false,
-            message: "User login failed",
-            err: error
+            message: error.message || 'User login failed',
+            err: error.message || 'User login failed'
         });
     }
 }
@@ -79,5 +79,3 @@ export const getUserProfile = async (req: AuthenticatedRequest, res: Response) =
         });
     }
 }
-
-

@@ -7,7 +7,7 @@ import { useAppDispatch } from '@/redux/hooks';
 import { setCredentials } from '@/redux/slices/authSlice';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -35,6 +35,7 @@ export default function SignupPage() {
     }
 
     setLoading(true);
+
     try {
       const response = await axios.post(
       `${API_URL}/api/auth/signup`,
@@ -50,17 +51,26 @@ export default function SignupPage() {
       }
     );
 
+      // Backend now always returns {data, success, message, err}. This check
+      // used to always throw on a SUCCESSFUL signup too, because the old
+      // response had no `success` field at all — so `!response.data.success`
+      // was always true, even when the account was created fine.
       if (!response.data.success) {
         throw new Error(response.data.message || 'Signup failed');
       }
 
-      const user = response.data.user ?? response.data.data ?? response.data;
-      localStorage.setItem('token', response.data.token);
+      const { user, token } = response.data.data;
+      localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
-      dispatch(setCredentials({ token: response.data.token, user }));
+      dispatch(setCredentials({ token, user }));
       router.push('/');
     } catch (err: any) {
-      setError(err.message || 'Something went wrong');
+      // A real failure (bad request, duplicate email, etc.) throws from
+      // axios itself before the success check above ever runs — err.message
+      // in that case is a generic string like "Request failed with status
+      // code 400", not the actual reason. Read the real message the backend
+      // sent back first.
+      setError(err.response?.data?.message || err.response?.data?.err || err.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
