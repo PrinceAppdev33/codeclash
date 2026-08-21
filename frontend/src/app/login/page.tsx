@@ -14,9 +14,13 @@ export default function LoginPage() {
   const router = useRouter();
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const dispatch = useAppDispatch();
   const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
     try {
       const response = await axios.post(
         `${API_URL}/api/auth/login`,
@@ -26,20 +30,20 @@ export default function LoginPage() {
             'Content-Type': 'application/json',
           },
         }
-      );
-      const data = response.data;
-
-      if (response.status < 200 || response.status >= 300) {
-        throw new Error(data.message || 'Login failed');
+      ); 
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Login failed');
       }
 
-      const user = data.user ?? data.data ?? data;
-      localStorage.setItem('token', data.token);
+      const { user, token } = response.data.data;
+      localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
-      dispatch(setCredentials({ token: data.token, user }));
+      dispatch(setCredentials({ token, user }));
       router.push('/');
-    } catch (error) {
-      console.log(error);
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.response?.data?.err || err.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
     }
   }
   return (
@@ -77,11 +81,16 @@ export default function LoginPage() {
                 />
               </div>
 
+              {error && (
+                <p className="text-sm font-bold text-red-600">{error}</p>
+              )}
+
               <button
                 type="submit"
-                className="mt-2 w-full bg-[#4a2100] px-4 py-3 font-bold tracking-wider text-[#fff8e7] transition hover:bg-[#6b3000]"
+                disabled={loading}
+                className="mt-2 w-full bg-[#4a2100] px-4 py-3 font-bold tracking-wider text-[#fff8e7] transition hover:bg-[#6b3000] disabled:opacity-60"
               >
-                LOGIN
+                {loading ? 'LOGGING IN...' : 'LOGIN'}
               </button>
               <GithubLoginButton />
 
