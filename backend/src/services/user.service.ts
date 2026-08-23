@@ -46,7 +46,7 @@ export class UserService {
                 username: input.username,
                 email: input.email,
                 password: hashedPassword,
-                avatarUrl: `https://avatars.dicebear.com/api/initials/${input.username}.svg`,
+                avatarUrl: `https://api.dicebear.com/9.x/initials/svg?seed=${input.username}`,
             }
         });
         const token = this.generateToken(newUser.id, newUser.email);
