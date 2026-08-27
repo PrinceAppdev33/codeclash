@@ -105,8 +105,8 @@ model Problem {
   difficulty        Difficulty  @default(EASY) 
   constraints       String?      @db.Text
   starterCode       Json
-  publicTestCases   String        
-  hiddenTestCases   String
+  publicTestCases   Json       
+  hiddenTestCases   Json
   createdAt         DateTime    @default(now())
   matches           Match[]
   submissions       Submission[]
