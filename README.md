@@ -2,6 +2,25 @@
 
 A 1v1 competitive programming platform — two players are matched into a real-time coding duel, race to solve the same problem, and get judged against hidden test cases. Pixel-art western theme ("Wanted Poster" profile cards, sunset gradients, wood textures).
 
+## Screenshots
+**Home Page**
+
+<img width="1919" height="899" alt="image" src="https://github.com/user-attachments/assets/c5069516-bd5e-432f-bb4d-559c9c560049" />
+
+**Profile Page**
+
+<img width="1915" height="881" alt="image" src="https://github.com/user-attachments/assets/5b2647b2-14ce-4c1e-ae88-6c1b30a39560" />
+
+**Match/IDE Page**
+
+<img width="1900" height="902" alt="image" src="https://github.com/user-attachments/assets/d7699544-1e65-4c0d-b8b6-f003c4f530ae" />
+
+
+
+
+
+<!-- Drop screenshots into docs/screenshots/ with these exact filenames, or update the paths above. -->
+
 ## Tech Stack
 
 **Frontend** (`/frontend`)
@@ -100,5 +119,5 @@ Required backend env vars (`.env`): `DATABASE_URL`, `FRONTEND_URL`, JWT secret, 
 
 ## Planned Next
 
-- Adopt Redux Thunk for async match-flow actions
-- Toast notifications for match results (win/loss) instead of current UI feedback
+- Adopt Redux Thunk for async match-flow actions (currently mixed patterns in `redux/slices`)
+- Toast notifications for match results (win/loss/Elo change) instead of current UI feedback
